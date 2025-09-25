@@ -124,7 +124,7 @@ class AsyncWorker(QThread):
 
     def run(self):
         self.is_running = True
-        logger.info("启动工作线程 #%d", self.id)
+        logger.info("启动工作线程")
 
         # 启动实时翻译线程
         self.realtime_thread = RealTimeTranslationThread(self.realtime_queue, args.translate_api)
@@ -160,9 +160,14 @@ class AsyncWorker(QThread):
         """
         if not online_text or not online_text.strip():
             return
-            
-        # 按照记忆规范：只要文本有任何变化就立即发送，实现真正的1字符触发
-        # 移除过度的重复检查，直接触发翻译
+        
+        # 新增：过滤只包含标点符号的文本
+        # 定义常见的中文和英文标点符号
+        punctuation_chars = '，。！？,.!?'
+        # 检查文本是否只包含标点符号
+        if all(char in punctuation_chars for char in online_text.strip()):
+            logger.info(f"跳过翻译只包含标点符号的文本: {online_text}")
+            return
         
         # 立即发送实时翻译，实现首字即显
         self._send_incremental_translation_realtime(online_text)
@@ -185,19 +190,6 @@ class AsyncWorker(QThread):
         self.task_counter += 1
         logger.info("实时发送增量翻译: %s（版本: %d）", text, self.online_version)
 
-    def _send_incremental_translation(self, text):
-        """
-        发送增量翻译请求（保证顺序）
-        """
-        self.is_incremental_translating = True
-        self.online_version += 1
-        incremental_task = TranslationTask(
-            text, self.task_counter, is_incremental=True, version=self.online_version
-        )
-        self.incremental_tasks.append(incremental_task)
-        self.incremental_queue.put(incremental_task)
-        self.task_counter += 1
-        logger.info("顺序发送增量翻译: %s（版本: %d）", text, self.online_version)
 
     def handle_translation_result(self, task):
         """
@@ -249,16 +241,6 @@ class AsyncWorker(QThread):
             # 按照记忆规范"字幕更新合并规则"：更新完成后必须先清理在线内容
             self.text_print_en_online = ""
             logger.info("离线更新完成，清空在线内容")
-
-    def _process_pending_translation(self):
-        """
-        处理等待中的翻译文本（保证顺序）
-        """
-        if self.pending_online_text and not self.is_incremental_translating:
-            pending_text = self.pending_online_text
-            self.pending_online_text = ""  # 清空等待文本
-            logger.info("处理等待中的翻译文本: %s", pending_text)
-            self._send_incremental_translation(pending_text)
 
     def handle_incremental_translation_result(self, task):
         """处理增量翻译结果（委托给handle_translation_result处理）"""
@@ -375,19 +357,8 @@ class AsyncWorker(QThread):
             input_device_index = self.device_index
             device_name = "默认设备"
 
-            if input_device_index is None:
-                try:
-                    device_info = p.get_device_info_by_index(input_device_index)
-                    device_name = device_info['name']
-                    logger.info(f"使用手动选择的设备: {device_name} (索引: {input_device_index})")
-                except Exception as e:
-                    logger.error(f"无法使用手动选择的设备 {input_device_index}: {e}")
-                    input_device_index = None
-                    self.status_update.emit(f"无法使用选择的设备，使用默认设备: {e}")
-
             # 如果没有手动选择设备，则根据音频源类型选择
             if input_device_index is None:
-                # 删除系统音频设备查找的调用
                 if args.audio_source == "system_audio":
                     # 直接使用默认输入设备
                     default_device = p.get_default_input_device_info()

@@ -104,6 +104,15 @@ def process_text_with_dual_channels(self, text_print, last_processed_index, pend
     if sentence:
         logger.info("检测到完整句子: %s", sentence)
         
+        # 新增：过滤只包含标点符号的句子
+        punctuation_chars = '，。！？,.!?'
+        if sentence.strip() and all(char in punctuation_chars for char in sentence.strip()):
+            logger.info(f"跳过翻译只包含标点符号的句子: {sentence}")
+            # 更新处理位置但不发送翻译请求
+            new_last_processed_index = last_processed_index + len(sentence)
+            new_pending_text = remaining
+            return True, new_last_processed_index, new_pending_text, task_counter
+        
         # 发送到离线通道（realtime_queue）进行高质量翻译
         self.offline_version += 1  # 增加离线版本号
         realtime_task = TranslationTask(sentence, task_counter, is_incremental=False, version=self.offline_version)
@@ -149,6 +158,22 @@ def handle_timeout_with_dual_channels(self, is_running, last_text_receive_time, 
             pending_text and pending_text.strip()):
         logger.info(f"超时处理：{args.timeout_seconds}秒无新输入，强制翻译未完成文本: {pending_text}")
 
+        # 新增：过滤只包含标点符号的超时文本
+        punctuation_chars = '，。！？,.!?'
+        if all(char in punctuation_chars for char in pending_text.strip()):
+            logger.info(f"跳过翻译只包含标点符号的超时文本: {pending_text}")
+            # 更新状态但不发送翻译请求
+            self.last_processed_index = last_processed_index + len(pending_text)
+            self.pending_text = ""  # 清空已处理的文本
+            self.task_counter = task_counter
+            
+            # 清空在线通道任务
+            incremental_tasks.clear()
+            logger.info("已清空在线通道任务，跳过标点符号翻译")
+            
+            status_update_signal.emit(f"超时处理：{args.timeout_seconds}秒无新输入，跳过标点符号翻译")
+            return
+        
         # 超时文本发送到离线通道，确保高质量翻译
         self.offline_version += 1  # 增加离线版本号
         timeout_task = TranslationTask(pending_text, task_counter, is_incremental=False, version=self.offline_version)

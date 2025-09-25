@@ -1,7 +1,7 @@
 """翻译任务管理模块"""
 import logging
 import requests
-import time  # 新增：用于计时
+import time  # 用于计时
 from datetime import datetime
 from PyQt5.QtCore import QThread, pyqtSignal
 
@@ -14,7 +14,7 @@ class TranslationTask:
         self.task_id = task_id  # 任务唯一标识符
         self.translated_text = ""  # 存储翻译结果
         self.timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]  # 时间戳
-        self.create_time = time.time()  # 添加：任务创建的精确时间戳
+        self.create_time = time.time()  # 任务创建的精确时间戳
         self.is_incremental = is_incremental  # 是否为增量翻译任务
         self.version = version  # 版本号，用于解决异步时序问题
 
@@ -88,10 +88,6 @@ class RealTimeTranslationThread(QThread):
                                             oldest_key = next(iter(self.translation_cache))
                                             del self.translation_cache[oldest_key]
                                         
-                                        # 添加任务创建time传递给翻译结果处理
-                                        if hasattr(task, 'create_time'):
-                                            setattr(task, 'create_time', task.create_time)
-                                        
                                         self.translation_done.emit(task)
                                         total_time = time.time() - task.create_time  # 计算总耗时
                                         logger.info("翻译完成 #%d: %s -> %s (API: %.3f秒, 总计: %.3f秒)", request_id, task.text, task.translated_text, elapsed_time, total_time)
@@ -100,8 +96,8 @@ class RealTimeTranslationThread(QThread):
                                 else:
                                     logger.error("翻译API错误 #%d: HTTP %s", request_id, response.status_code)
                             except Exception as e:
-                                # 确保 request_id 已定义，避免 UnboundLocalError
-                                req_id = getattr(locals(), 'request_id', self.request_count)
+                                # 使用当前的request_count作为默认值
+                                req_id = self.request_count
                                 logger.error("翻译请求错误 #%d: %s", req_id, str(e))
                 except (OSError, ValueError) as queue_error:
                     # 队列已关闭或无效，停止线程
@@ -116,7 +112,7 @@ class RealTimeTranslationThread(QThread):
                         continue
                 except Exception as queue_error:
                     # 处理get_nowait可能抛出的异常
-                    if "Empty" in str(queue_error) or "empty" in str(queue_error):
+                    if "Empty" in str(queue_error) or "empty" in str(queue_error).lower():
                         # 队列为空，正常情况
                         pass
                     else:

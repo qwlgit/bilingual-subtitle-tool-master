@@ -34,7 +34,7 @@ def parse_arguments():
     
     # 翻译参数
     parser.add_argument("--translate_api", type=str, default="http://localhost:8000/translate", help="Translation API endpoint")
-    parser.add_argument("--timeout_seconds", type=int, default=4, help="Seconds to wait before translating incomplete text")
+    parser.add_argument("--timeout_seconds", type=int, default=2, help="Seconds to wait before translating incomplete text")
     
     # 音频设备参数
     parser.add_argument("--audio_source", type=str, default="microphone", choices=["microphone", "system_audio"], help="Audio source: microphone or system_audio")

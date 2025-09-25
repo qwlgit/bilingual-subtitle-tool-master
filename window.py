@@ -19,9 +19,7 @@ from transparent_window import TransparentSubtitleWindow
 
 # 在文件顶部添加导入
 from audio_utils import get_audio_devices, get_default_audio_device
-
-# 导入设置对话框
-from settings_dialog import SettingsDialog
+    
 
 logger = logging.getLogger(__name__)
 
@@ -448,37 +446,6 @@ class SubtitleDisplay(QMainWindow):
         self.export_button.clicked.connect(self.export_subtitles)
         control_layout.addWidget(self.export_button)
 
-        # 注释掉设置按钮
-        # # 添加设置按钮
-        # self.settings_button = QPushButton("设置")
-        # self.settings_button.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: rgba(255, 140, 0, 0.7);
-        #         color: #ffffff;
-        #         border: 2px solid rgba(255, 165, 0, 0.5);
-        #         border-radius: 8px;
-        #         padding: 8px 16px;
-        #         font-weight: bold;
-        #         font-size: 12px;
-        #         min-width: 60px;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: rgba(255, 160, 0, 0.9);
-        #         border: 2px solid rgba(255, 180, 0, 0.8);
-        #     }
-        #     QPushButton:pressed {
-        #         background-color: rgba(255, 120, 0, 1.0);
-        #         border: 2px solid rgba(255, 200, 0, 1.0);
-        #     }
-        #     QPushButton:disabled {
-        #         background-color: rgba(50, 50, 50, 0.5);
-        #         color: #888888;
-        #         border: 2px solid rgba(100, 100, 100, 0.3);
-        #     }
-        # """)
-        # self.settings_button.clicked.connect(self.open_settings)
-        # control_layout.addWidget(self.settings_button)
-
         control_layout.addStretch()
 
         # 组装布局
@@ -811,34 +778,6 @@ class SubtitleDisplay(QMainWindow):
         # 清空副窗口引用，确保下次点击按钮会重新创建
         self.subtitle_window = None
 
-    def open_settings(self):
-        """打开设置对话框"""
-        try:
-            # 创建设置对话框实例
-            settings_dialog = SettingsDialog(self.args, self)
-            
-            # 显示对话框并等待用户操作
-            if settings_dialog.exec_() == QDialog.Accepted:
-                # 用户点击了确定按钮，应用新的设置
-                new_args = settings_dialog.get_current_settings()
-                
-                # 更新主窗口的参数
-                self.args = new_args
-                
-                # 如果正在识别中，需要重新启动识别以应用新设置
-                if self.worker and hasattr(self.worker, 'is_running') and self.worker.is_running:
-                    QMessageBox.information(self, "设置已更新", 
-                                         "新的设置将在下次启动识别时生效。")
-                else:
-                    QMessageBox.information(self, "设置已更新", 
-                                         "设置已成功应用。")
-                
-                logger.info("设置已更新并应用")
-                
-        except Exception as e:
-            error_msg = f"打开设置对话框时发生错误: {str(e)}"
-            logger.error(error_msg)
-            QMessageBox.critical(self, "设置错误", error_msg)
 
     def export_subtitles(self):
         """导出中英文字幕到文件，并保存导出记录"""
