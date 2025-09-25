@@ -734,14 +734,18 @@ class SubtitleDisplay(QMainWindow):
             if bool(self.windowState() & Qt.WindowState.WindowMinimized):
                 logger.info("主窗口被最小化，保持透明字幕窗口显示")
                 # 这里不执行任何操作，透明字幕窗口会保持显示状态
-            # 检查窗口是否从最小化状态恢复 - 需要导入QWindowStateChangeEvent并进行类型检查
+            # 检查窗口是否从最小化状态恢复
             else:
                 # 对于WindowStateChange事件，我们可以通过检查当前状态来判断是否从最小化恢复
                 # 如果当前不是最小化状态，说明可能从最小化状态恢复了
                 if not bool(self.windowState() & Qt.WindowState.WindowMinimized):
                     logger.info("主窗口状态变化，可能从最小化状态恢复")
         
-        super().changeEvent(a0)
+        # 修复：使用安全的父类调用
+        try:
+            super().changeEvent(a0)
+        except Exception as e:
+            logger.error(f"父类 changeEvent 调用失败: {e}")
         
     def closeEvent(self, a0):
         """当主窗口关闭时，确保透明字幕窗口也被关闭"""

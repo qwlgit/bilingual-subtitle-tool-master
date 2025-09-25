@@ -20,10 +20,28 @@ class TransparentSubtitleWindow(QMainWindow):
         super().__init__()
         self.on_close_callback = on_close_callback  # 保存回调函数
         self.setWindowTitle("智能字幕显示")
-        # 使用类型转换修复setWindowFlags的类型问题
-        window_flags = Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint
-        self.setWindowFlags(window_flags)  # type: ignore
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        # 修复：Qt类型检查问题，确保类型安全
+        try:
+            window_flags = (
+                Qt.WindowType.Window | 
+                Qt.WindowType.WindowStaysOnTopHint | 
+                Qt.WindowType.FramelessWindowHint
+            )
+            self.setWindowFlags(window_flags)
+        except AttributeError:
+            # 兼容旧版本PyQt5
+            window_flags = (
+                Qt.Window | 
+                Qt.WindowStaysOnTopHint | 
+                Qt.FramelessWindowHint
+            )
+            self.setWindowFlags(window_flags)
+        
+        try:
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        except AttributeError:
+            # 兼容旧版本PyQt5
+            self.setAttribute(Qt.WA_TranslucentBackground)
         
         # 设置窗口大小和位置（固定长度为屏幕宽度的80%，位于屏幕最下方）
         screen = self.screen()

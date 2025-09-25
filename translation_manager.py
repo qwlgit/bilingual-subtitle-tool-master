@@ -32,11 +32,11 @@ class RealTimeTranslationThread(QThread):
 
     def run(self):
         while self.is_running:
+            task_processed = False  # 在循环外部初始化，修复变量作用域问题
             try:
                 # 检查队列是否还在有效状态
                 try:
                     # 优化：减少队列检查延迟，使用非阻塞方式
-                    task_processed = False  # 标记是否处理了任务
                     if not self.queue.empty():
                         task = self.queue.get_nowait()  # 使用非阻塞获取
                         task_start_time = time.time()  # 记录任务开始处理时间
@@ -96,8 +96,8 @@ class RealTimeTranslationThread(QThread):
                                 else:
                                     logger.error("翻译API错误 #%d: HTTP %s", request_id, response.status_code)
                             except Exception as e:
-                                # 使用当前的request_count作为默认值
-                                req_id = self.request_count
+                                # 修复：确保在异常情况下正确访问请求计数器
+                                req_id = getattr(self, 'request_count', 0)  # 安全获取请求计数器
                                 logger.error("翻译请求错误 #%d: %s", req_id, str(e))
                 except (OSError, ValueError) as queue_error:
                     # 队列已关闭或无效，停止线程

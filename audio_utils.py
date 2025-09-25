@@ -214,8 +214,10 @@ def get_audio_devices():
 
         # 添加WASAPI环回设备
         for wasapi_device in wasapi_devices:
+            # 修复：使用负数索引以避免与普通设备冲突，便于识别
+            wasapi_index = -(wasapi_device['index'] + 1)  # 负数索引，从-1开始
             valid_devices.append((
-                wasapi_device['index'] + 1000,  # 使用特殊索引避免冲突
+                wasapi_index,
                 wasapi_device['name'],
                 "系统音频",
                 True
